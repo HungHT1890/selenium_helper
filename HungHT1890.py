@@ -6,6 +6,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait as WebWait
 from selenium.webdriver.common.action_chains import ActionChains as ActChain
+from selenium.webdriver.common.alert import Alert
 from selenium.webdriver.common.by import By
 from os import path , makedirs
 from subprocess import check_output , CREATE_NO_WINDOW
@@ -193,6 +194,49 @@ class HungHT1890Sele:
                 driver.close()
         return close_status
     
+    def taskkill_driver(self):
+        check_output('taskkill /F /im chrome.exe',creationflags=CREATE_NO_WINDOW)
+    
+    def driver_content(self,driver):
+        return driver.page_source
+    
+    def driver_url(self,driver):
+        return driver.current_url
+    
+    def driver_alert(self,driver,action=0,msg='',msg_delay=1):
+        _alert = Alert(driver)
+        if action == 0:
+            return _alert.accept()
+        elif action == 1:
+            return _alert.dismiss()
+        elif action == 2:
+            return _alert.text
+        elif action == 3:
+            js = f"alert('{msg}')"
+            self.run_js(driver,js)
+            sleep(msg_delay)
+            Alert(driver).accept()
+        else:
+            return False
+    
+    def driver_title(self,driver,option=0,new_title='HungHT1890'):
+        """
+        0 => get window title
+        1 => set title
+        """
+        if option == 0:
+            js = 'return document.title'
+            return self.run_js(driver,js)
+        elif option == 1:
+            js = f'return document.title = {new_title}'
+            return self.run_js(driver,js)
+        else:
+            return False
+        
+        
+            
+            
+    
     """ => close and switch
         lấy số tab hiện có
         mặc định khi lấy -> len sẽ = 1 nếu chỉ có 1 tab 
@@ -349,6 +393,12 @@ class HungHT1890Sele:
         """
         return WebWait(driver,time_out).until(EC.presence_of_element_located((find_type,find_value)))
     
+    def get_elements(self,driver,find_type=By.XPATH,find_value='',time_out=15):
+        """ => LẤY TOÀN BỘ ELEMENT <=
+        find_type: tìm kiếm dạng nào xpath hay class hay name hay id
+        find_value: là giá trị dể tìm kiếm => xpath hay id hoặc classname
+        """
+        return WebWait(driver,time_out).until(EC.presence_of_all_elements_located((find_type,find_value)))
     
     def get_element_text(self,driver,find_type=By.XPATH,find_value=''):
         "LẤY ELEMENT TEXT"
@@ -360,12 +410,16 @@ class HungHT1890Sele:
         return self.get_element(driver,find_type,find_value).get_attribute(get_attribute)
     
     
-    def get_screen_shot(self,driver,full=True,file_image='screen.png',find_type=By.XPATH,find_value='//*'):
+    def get_screen_shot(self,driver,full=True,b64=False,file_image='screen.png',find_type=By.XPATH,find_value='//*'):
         "FULL: TRUE => CHỤP FULL MÀN HÌNH , False => chụp theo element"
         if full:
+            if b64:
+                return driver.get_screenshot_as_base64()
             driver.save_screenshot(file_image)
         else:
             element = self.get_element(driver,find_type,find_value)
+            if b64:
+                return element.screenshot_as_base64()
             element.screenshot(file_image)
     
     def element_sendkeys(self,driver,send_type=0,send_data='',find_type=By.XPATH,find_value='',has_delay=False,delay_time=0.2):
@@ -453,8 +507,77 @@ class HungHT1890Sele:
             if count_click > 1:
                 sleep(click_delay)
         return click_status
-                
-            
+    
+    def element_select(self,driver,find_type=By.XPATH,find_value='',select_type=0,select_value=0):
+        """
+        select type: 0 => select by xpath , class_name , name , id
+                     1 => select by 
+                    #  not done
+        """
+        
+        select_status = self.get_element(driver,find_type,find_value).click()
+    
+    def element_checker(self,diver,find_type=By.XPATH,find_value='',check_type=0):
+        """ => check type <= 
+        0 => check element is display
+        1 => check element is enable
+        2 => check element is selected
+        3 => check element location
+        4 => check element size
+        
+        """
+        element = self.get_element(driver,find_type,find_value)
+        if check_type == 0:
+            return element.is_displayed()
+        elif check_type == 1:
+            return element.is_enabled()
+        elif check_type == 2:
+            return element.is_selected()
+        elif check_type == 3:
+            location = element.location
+            return (location['x'],location['y'])
+        elif check_type == 4:
+            size = element.size
+            return (size['width'],size['height'])
+        else:
+            return 'WRONG_OPTION'
+    
+    def swith_iframe(self,driver,find_type=By.XPATH,find_value=''):
+        "switch to iframe"
+        WebWait(driver).until(EC.frame_to_be_available_and_switch_to_it((find_type,find_value)))
+        
+    def switch_default(self,driver):
+        "switch to page defaut content => exit iframe"
+        driver.switch_to.default_content()
+    
+    def element_remove(self,driver,find_type=By.XPATH,find_value='',element_index=0,remove_all=False):
+        """
+        element_index: int => element index in list of elements
+        remove_all: true => remove all elements
+        
+        """
+        elements = self.get_elements(driver,find_type,find_value)
+        remove_status = True
+        if remove_all:
+            for element in elements:
+                js = "return arguments[0].remove();"
+                driver.execute_script(js,element)
+        else:
+            if element_index == 0:
+                js = "return arguments[0].remove();"
+                driver.execute_script(js,elements[element_index])
+            else:
+                if len(elements) > (element_index + 1):
+                    js = "return arguments[0].remove();"
+                    driver.execute_script(js,elements[element_index])
+                else:
+                    remove_status = False
+        return remove_status
+    
+                    
+    
+    
+    
             
     
         
@@ -485,6 +608,7 @@ if __name__ == '__main__':
     driver.maximize_window()
     seleSupport.get_screen_shot(driver,full=True)
     seleSupport.element_lick(driver,find_value='//*[contains(@href,"https://accounts.lambdatest.com/login")]',click_type=0)
+    driver.get_screenshot_as_base64()
     
     
 
