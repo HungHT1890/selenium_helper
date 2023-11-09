@@ -10,7 +10,6 @@ from selenium.webdriver.common.alert import Alert
 from selenium.webdriver.common.by import By
 from os import path , makedirs
 from subprocess import check_output , CREATE_NO_WINDOW
-from logging import FileHandler ,Formatter , getLogger, debug , info , warning , WARNING
 from zipfile import ZipFile
 
 
@@ -18,14 +17,7 @@ def create_foler(folder_name):
     if not path.exists(folder_name):
         makedirs(folder_name)
     return folder_name
-def config_logging(file_name='setup_chrome.log',msg=''):
-    logger = getLogger(file_name)
-    file_logger = FileHandler(file_name,mode='w',encoding='utf-8')
-    NEW_FORMAT = '[%(asctime)s] - [%(levelname)s] - %(message)s'
-    file_logger_format = Formatter(NEW_FORMAT)
-    file_logger.setFormatter(file_logger_format)
-    file_logger.setLevel(WARNING)
-    logger.warning(msg=msg,exc_info=True)
+
 
 class HungHT1890Sele:
     def __init__(self,
@@ -177,15 +169,16 @@ class HungHT1890Sele:
             windows = []
             for x in range(max_get_tab,0,-1):
                 windows = driver.window_handles
-                if len(windows) >= 2:
+                if len(windows) >= (tab_index + 1) :
                     driver.switch_to.window(windows[tab_index])
                     driver.close()
                     driver.switch_to.window(windows[0])
                     break
                 print(f'Wait {x-1} seconds for close tab {tab_index}',end='\r')
                 sleep(1)
+                
             if len(windows) < (tab_index + 1):
-                print(f'No Exist Tab {tab_index}')
+                print(f'\nNo Exist Tab {tab_index}')
                 close_status = False
         else:    
             windows = driver.window_handles
@@ -221,6 +214,7 @@ class HungHT1890Sele:
     
     def driver_title(self,driver,option=0,new_title='HungHT1890'):
         """
+        option
         0 => get window title
         1 => set title
         """
@@ -228,7 +222,7 @@ class HungHT1890Sele:
             js = 'return document.title'
             return self.run_js(driver,js)
         elif option == 1:
-            js = f'return document.title = {new_title}'
+            js = f'return document.title = "{new_title}"'
             return self.run_js(driver,js)
         else:
             return False
@@ -604,14 +598,7 @@ if __name__ == '__main__':
     
     seleSupport = HungHT1890Sele()
     driver = seleSupport.chrome_setup()
-    seleSupport.open_url(driver,url='https://lambdatest.com/blog/selenium-click-button-with-examples/',js=True,switch=True)
-    driver.maximize_window()
-    seleSupport.get_screen_shot(driver,full=True)
-    seleSupport.element_lick(driver,find_value='//*[contains(@href,"https://accounts.lambdatest.com/login")]',click_type=0)
-    driver.get_screenshot_as_base64()
-    
-    
-
-    
+    seleSupport.open_url(driver,url)
+    seleSupport.driver_title(driver,option=1)
     input("Enter to close")
     driver.close()
